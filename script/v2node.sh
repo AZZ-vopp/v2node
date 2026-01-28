@@ -135,14 +135,14 @@ update() {
 }
 
 config() {
-    echo "v2node在修改配置后会自动尝试重启"
+    echo "v2node sẽ tự động thử khởi động lại sau khi sửa cấu hình"
     vi /etc/v2node/config.json
     sleep 2
     restart
     check_status
     case $? in
         0)
-            echo -e "v2node状态: ${green}已运行${plain}"
+            echo -e "Trạng thái v2node: ${green}Đã chạy${plain}"
             ;;
         1)
             echo -e "Phát hiện bạn chưa khởi động v2node hoặc v2node tự động khởi động lại thất bại, có xem log không? [Y/n]" && echo
@@ -153,7 +153,7 @@ config() {
             fi
             ;;
         2)
-            echo -e "v2node状态: ${red}未安装${plain}"
+            echo -e "Trạng thái v2node: ${red}Chưa cài đặt${plain}"
     esac
 }
 

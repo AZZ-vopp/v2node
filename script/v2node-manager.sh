@@ -98,20 +98,20 @@ restart_v2node() {
   echo ""
   echo -e "${YELLOW}Đang khởi động lại dịch vụ v2node...${RESET}"
   
-  # 尝试使用 systemctl
+  # Thử sử dụng systemctl
   if command -v systemctl >/dev/null 2>&1; then
     if systemctl list-units --type=service --all | grep -q "v2node"; then
       if sudo systemctl restart v2node 2>/dev/null; then
-        echo -e "${GREEN}v2node 服务已重启${RESET}"
+        echo -e "${GREEN}Dịch vụ v2node đã khởi động lại${RESET}"
         return 0
       fi
     fi
   fi
   
-  # 尝试使用 service 命令
+  # Thử sử dụng lệnh service
   if command -v service >/dev/null 2>&1; then
     if sudo service v2node restart 2>/dev/null; then
-      echo -e "${GREEN}v2node 服务已重启${RESET}"
+      echo -e "${GREEN}Dịch vụ v2node đã khởi động lại${RESET}"
       return 0
     fi
   fi
