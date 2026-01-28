@@ -7,10 +7,10 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
-# check root
-[[ $EUID -ne 0 ]] && echo -e "${red}错误：${plain} 必须使用root用户运行此脚本！\n" && exit 1
+# kiểm tra quyền root
+[[ $EUID -ne 0 ]] && echo -e "${red}Lỗi:${plain} Phải sử dụng quyền root để chạy script này!\n" && exit 1
 
-# check os
+# kiểm tra hệ điều hành
 if [[ -f /etc/redhat-release ]]; then
     release="centos"
 elif cat /etc/issue | grep -Eqi "alpine"; then
@@ -30,7 +30,7 @@ elif cat /proc/version | grep -Eqi "centos|red hat|redhat|rocky|alma|oracle linu
 elif cat /proc/version | grep -Eqi "arch"; then
     release="arch"
 else
-    echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
+    echo -e "${red}Không phát hiện được phiên bản hệ thống, vui lòng liên hệ tác giả script!${plain}\n" && exit 1
 fi
 
 arch=$(uname -m)
@@ -43,11 +43,11 @@ elif [[ $arch == "s390x" ]]; then
     arch="s390x"
 else
     arch="64"
-    echo -e "${red}检测架构失败，使用默认架构: ${arch}${plain}"
+    echo -e "${red}Phát hiện kiến trúc thất bại, sử dụng kiến trúc mặc định: ${arch}${plain}"
 fi
 
 if [ "$(getconf WORD_BIT)" != '32' ] && [ "$(getconf LONG_BIT)" != '64' ] ; then
-    echo "本软件不支持 32 位系统(x86)，请使用 64 位系统(x86_64)，如果检测有误，请联系作者"
+    echo "Phần mềm này không hỗ trợ hệ thống 32 bit (x86), vui lòng sử dụng hệ thống 64 bit (x86_64), nếu phát hiện sai, vui lòng liên hệ tác giả"
     exit 2
 fi
 
@@ -61,24 +61,24 @@ fi
 
 if [[ x"${release}" == x"centos" ]]; then
     if [[ ${os_version} -le 6 ]]; then
-        echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Vui lòng sử dụng CentOS 7 hoặc phiên bản cao hơn!${plain}\n" && exit 1
     fi
     if [[ ${os_version} -eq 7 ]]; then
-        echo -e "${red}注意： CentOS 7 无法使用hysteria1/2协议！${plain}\n"
+        echo -e "${red}Lưu ý: CentOS 7 không thể sử dụng giao thức hysteria1/2!${plain}\n"
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
     if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Vui lòng sử dụng Ubuntu 16 hoặc phiên bản cao hơn!${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
+        echo -e "${red}Vui lòng sử dụng Debian 8 hoặc phiên bản cao hơn!${plain}\n" && exit 1
     fi
 fi
 
 confirm() {
     if [[ $# > 1 ]]; then
-        echo && read -rp "$1 [默认$2]: " temp
+        echo && read -rp "$1 [mặc định $2]: " temp
         if [[ x"${temp}" == x"" ]]; then
             temp=$2
         fi
@@ -93,7 +93,7 @@ confirm() {
 }
 
 confirm_restart() {
-    confirm "是否重启v2node" "y"
+    confirm "Có khởi động lại v2node không" "y"
     if [[ $? == 0 ]]; then
         restart
     else
@@ -102,7 +102,7 @@ confirm_restart() {
 }
 
 before_show_menu() {
-    echo && echo -n -e "${yellow}按回车返回主菜单: ${plain}" && read temp
+    echo && echo -n -e "${yellow}Bấm Enter để quay về menu chính: ${plain}" && read temp
     show_menu
 }
 
@@ -119,13 +119,13 @@ install() {
 
 update() {
     if [[ $# == 0 ]]; then
-        echo && echo -n -e "输入指定版本(默认最新版): " && read version
+        echo && echo -n -e "Nhập phiên bản chỉ định (mặc định phiên bản mới nhất): " && read version
     else
         version=$2
     fi
     bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh) $version
     if [[ $? == 0 ]]; then
-        echo -e "${green}更新完成，已自动重启 v2node，请使用 v2node log 查看运行日志${plain}"
+        echo -e "${green}Cập nhật hoàn tất, đã tự động khởi động lại v2node, vui lòng sử dụng v2node log để xem log chạy${plain}"
         exit
     fi
 
@@ -145,8 +145,8 @@ config() {
             echo -e "v2node状态: ${green}已运行${plain}"
             ;;
         1)
-            echo -e "检测到您未启动v2node或v2node自动重启失败，是否查看日志？[Y/n]" && echo
-            read -e -rp "(默认: y):" yn
+            echo -e "Phát hiện bạn chưa khởi động v2node hoặc v2node tự động khởi động lại thất bại, có xem log không? [Y/n]" && echo
+            read -e -rp "(mặc định: y):" yn
             [[ -z ${yn} ]] && yn="y"
             if [[ ${yn} == [Yy] ]]; then
                show_log
@@ -158,7 +158,7 @@ config() {
 }
 
 uninstall() {
-    confirm "确定要卸载 v2node 吗?" "n"
+    confirm "Chắc chắn muốn gỡ cài đặt v2node không?" "n"
     if [[ $? != 0 ]]; then
         if [[ $# == 0 ]]; then
             show_menu
@@ -180,7 +180,7 @@ uninstall() {
     rm /usr/local/v2node/ -rf
 
     echo ""
-    echo -e "卸载成功，如果你想删除此脚本，则退出脚本后运行 ${green}rm /usr/bin/v2node -f${plain} 进行删除"
+    echo -e "Gỡ cài đặt thành công, nếu bạn muốn xóa script này, thoát script rồi chạy ${green}rm /usr/bin/v2node -f${plain} để xóa"
     echo ""
 
     if [[ $# == 0 ]]; then
@@ -192,7 +192,7 @@ start() {
     check_status
     if [[ $? == 0 ]]; then
         echo ""
-        echo -e "${green}v2node已运行，无需再次启动，如需重启请选择重启${plain}"
+        echo -e "${green}v2node đã chạy, không cần khởi động lại, nếu cần khởi động lại vui lòng chọn khới động lại${plain}"
     else
         if [[ x"${release}" == x"alpine" ]]; then
             service v2node start
@@ -202,9 +202,9 @@ start() {
         sleep 2
         check_status
         if [[ $? == 0 ]]; then
-            echo -e "${green}v2node 启动成功，请使用 v2node log 查看运行日志${plain}"
+            echo -e "${green}v2node khởi động thành công, vui lòng sử dụng v2node log để xem log chạy${plain}"
         else
-            echo -e "${red}v2node可能启动失败，请稍后使用 v2node log 查看日志信息${plain}"
+            echo -e "${red}v2node có thể khởi động thất bại, vui lòng chờ chút rồi sử dụng v2node log để xem thông tin log${plain}"
         fi
     fi
 
@@ -222,9 +222,9 @@ stop() {
     sleep 2
     check_status
     if [[ $? == 1 ]]; then
-        echo -e "${green}v2node 停止成功${plain}"
+        echo -e "${green}v2node dừng thành công${plain}"
     else
-        echo -e "${red}v2node停止失败，可能是因为停止时间超过了两秒，请稍后查看日志信息${plain}"
+        echo -e "${red}v2node dừng thất bại, có thể do thời gian dừng vượt quá hai giây, vui lòng xem thông tin log sau${plain}"
     fi
 
     if [[ $# == 0 ]]; then
@@ -241,9 +241,9 @@ restart() {
     sleep 2
     check_status
     if [[ $? == 0 ]]; then
-        echo -e "${green}v2node 重启成功，请使用 v2node log 查看运行日志${plain}"
+        echo -e "${green}v2node khởi động lại thành công, vui lòng sử dụng v2node log để xem log chạy${plain}"
     else
-        echo -e "${red}v2node可能启动失败，请稍后使用 v2node log 查看日志信息${plain}"
+        echo -e "${red}v2node có thể khởi động thất bại, vui lòng chờ chút rồi sử dụng v2node log để xem thông tin log${plain}"
     fi
     if [[ $# == 0 ]]; then
         before_show_menu
@@ -268,9 +268,9 @@ enable() {
         systemctl enable v2node
     fi
     if [[ $? == 0 ]]; then
-        echo -e "${green}v2node 设置开机自启成功${plain}"
+        echo -e "${green}v2node thiết lập khởi động cùng hệ thống thành công${plain}"
     else
-        echo -e "${red}v2node 设置开机自启失败${plain}"
+        echo -e "${red}v2node thiết lập khởi động cùng hệ thống thất bại${plain}"
     fi
 
     if [[ $# == 0 ]]; then
@@ -285,9 +285,9 @@ disable() {
         systemctl disable v2node
     fi
     if [[ $? == 0 ]]; then
-        echo -e "${green}v2node 取消开机自启成功${plain}"
+        echo -e "${green}v2node hủy khởi động cùng hệ thống thành công${plain}"
     else
-        echo -e "${red}v2node 取消开机自启失败${plain}"
+        echo -e "${red}v2node hủy khởi động cùng hệ thống thất bại${plain}"
     fi
 
     if [[ $# == 0 ]]; then
@@ -297,7 +297,7 @@ disable() {
 
 show_log() {
     if [[ x"${release}" == x"alpine" ]]; then
-        echo -e "${red}alpine系统暂不支持日志查看${plain}\n" && exit 1
+        echo -e "${red}Hệ thống alpine tạm thời không hỗ trợ xem log${plain}\n" && exit 1
     else
         journalctl -u v2node.service -e --no-pager -f
     fi
@@ -310,11 +310,11 @@ update_shell() {
     wget -O /usr/bin/v2node -N --no-check-certificate https://raw.githubusercontent.com/wyx2685/v2node/master/script/v2node.sh
     if [[ $? != 0 ]]; then
         echo ""
-        echo -e "${red}下载脚本失败，请检查本机能否连接 Github${plain}"
+        echo -e "${red}Tải script thất bại, vui lòng kiểm tra máy có kết nối được Github không${plain}"
         before_show_menu
     else
         chmod +x /usr/bin/v2node
-        echo -e "${green}升级脚本成功，请重新运行脚本${plain}" && exit 0
+        echo -e "${green}Nâng cấp script thành công, vui lòng chạy lại script${plain}" && exit 0
     fi
 }
 
@@ -362,7 +362,7 @@ check_uninstall() {
     check_status
     if [[ $? != 2 ]]; then
         echo ""
-        echo -e "${red}v2node已安装，请不要重复安装${plain}"
+        echo -e "${red}v2node đã cài đặt, đừng cài đặt lặp lại${plain}"
         if [[ $# == 0 ]]; then
             before_show_menu
         fi
@@ -376,7 +376,7 @@ check_install() {
     check_status
     if [[ $? == 2 ]]; then
         echo ""
-        echo -e "${red}请先安装v2node${plain}"
+        echo -e "${red}Vui lòng cài đặt v2node trước${plain}"
         if [[ $# == 0 ]]; then
             before_show_menu
         fi
@@ -390,29 +390,29 @@ show_status() {
     check_status
     case $? in
         0)
-            echo -e "v2node状态: ${green}已运行${plain}"
+            echo -e "Trạng thái v2node: ${green}Đã chạy${plain}"
             show_enable_status
             ;;
         1)
-            echo -e "v2node状态: ${yellow}未运行${plain}"
+            echo -e "Trạng thái v2node: ${yellow}Chưa chạy${plain}"
             show_enable_status
             ;;
         2)
-            echo -e "v2node状态: ${red}未安装${plain}"
+            echo -e "Trạng thái v2node: ${red}Chưa cài đặt${plain}"
     esac
 }
 
 show_enable_status() {
     check_enabled
     if [[ $? == 0 ]]; then
-        echo -e "是否开机自启: ${green}是${plain}"
+        echo -e "Có khởi động cùng hệ thống: ${green}Có${plain}"
     else
-        echo -e "是否开机自启: ${red}否${plain}"
+        echo -e "Có khởi động cùng hệ thống: ${red}Không${plain}"
     fi
 }
 
 show_v2node_version() {
-    echo -n "v2node 版本："
+    echo -n "Phiên bản v2node: "
     /usr/local/v2node/v2node version
     echo ""
     if [[ $# == 0 ]]; then
@@ -443,7 +443,7 @@ generate_v2node_config() {
     ]
 }
 EOF
-        echo -e "${green}V2node 配置文件生成完成,正在重新启动服务${plain}"
+        echo -e "${green}Tạo tệp cấu hình V2node xong, đang khởi động lại dịch vụ${plain}"
         if [[ x"${release}" == x"alpine" ]]; then
             service v2node restart
         else
@@ -453,26 +453,26 @@ EOF
         check_status
         echo -e ""
         if [[ $? == 0 ]]; then
-            echo -e "${green}v2node 重启成功${plain}"
+            echo -e "${green}v2node khởi động lại thành công${plain}"
         else
-            echo -e "${red}v2node 可能启动失败，请使用 v2node log 查看日志信息${plain}"
+            echo -e "${red}v2node có thể khới động thất bại, vui lòng sử dụng v2node log để xem thông tin log${plain}"
         fi
 }
 
 
 generate_config_file() {
-    # 交互式收集参数，提供示例默认值
-    read -rp "面板API地址[格式: https://example.com/]: " api_host
+    # Thu thập tham số tương tác, cung cấp giá trị mặc định làm ví dụ
+    read -rp "Địa chỉ API của panel [định dạng: https://example.com/]: " api_host
     api_host=${api_host:-https://example.com/}
-    read -rp "节点ID: " node_id
+    read -rp "ID của node: " node_id
     node_id=${node_id:-1}
-    read -rp "节点通讯密钥: " api_key
+    read -rp "Khóa giao tiếp của node: " api_key
 
-    # 生成配置文件（覆盖可能从包中复制的模板）
+    # Tạo tệp cấu hình (ghi đè mẫu có thể sao chép từ gói)
     generate_v2node_config "$api_host" "$node_id" "$api_key"
 }
 
-# 放开防火墙端口
+# Mở các cổng firewall
 open_ports() {
     systemctl stop firewalld.service 2>/dev/null
     systemctl disable firewalld.service 2>/dev/null
@@ -486,58 +486,58 @@ open_ports() {
     iptables -F 2>/dev/null
     iptables -X 2>/dev/null
     netfilter-persistent save 2>/dev/null
-    echo -e "${green}放开防火墙端口成功！${plain}"
+    echo -e "${green}Mở các cổng firewall thành công!${plain}"
 }
 
 show_usage() {
-    echo "v2node 管理脚本使用方法: "
+    echo "Cách sử dụng script quản lý v2node: "
     echo "------------------------------------------"
-    echo "v2node              - 显示管理菜单 (功能更多)"
-    echo "v2node start        - 启动 v2node"
-    echo "v2node stop         - 停止 v2node"
-    echo "v2node restart      - 重启 v2node"
-    echo "v2node status       - 查看 v2node 状态"
-    echo "v2node enable       - 设置 v2node 开机自启"
-    echo "v2node disable      - 取消 v2node 开机自启"
-    echo "v2node log          - 查看 v2node 日志"
-    echo "v2node x25519       - 生成 x25519 密钥"
-    echo "v2node generate     - 生成 v2node 配置文件"
-    echo "v2node update       - 更新 v2node"
-    echo "v2node update x.x.x - 安装 v2node 指定版本"
-    echo "v2node install      - 安装 v2node"
-    echo "v2node uninstall    - 卸载 v2node"
-    echo "v2node version      - 查看 v2node 版本"
+    echo "v2node              - Hiển thị menu quản lý (nhiều tính năng hơn)"
+    echo "v2node start        - Khởi động v2node"
+    echo "v2node stop         - Dừng v2node"
+    echo "v2node restart      - Khới động lại v2node"
+    echo "v2node status       - Xem trạng thái v2node"
+    echo "v2node enable       - Thiết lập v2node khởi động cùng hệ thống"
+    echo "v2node disable      - Hủy v2node khởi động cùng hệ thống"
+    echo "v2node log          - Xem log của v2node"
+    echo "v2node x25519       - Tạo khóa x25519"
+    echo "v2node generate     - Tạo tệp cấu hình v2node"
+    echo "v2node update       - Cập nhật v2node"
+    echo "v2node update x.x.x - Cài đặt phiên bản v2node chỉ định"
+    echo "v2node install      - Cài đặt v2node"
+    echo "v2node uninstall    - Gỡ cài đặt v2node"
+    echo "v2node version      - Xem phiên bản v2node"
     echo "------------------------------------------"
 }
 
 show_menu() {
     echo -e "
-  ${green}v2node 后端管理脚本，${plain}${red}不适用于docker${plain}
+  ${green}Script quản lý backend v2node,${plain}${red}không áp dụng cho docker${plain}
 --- https://github.com/wyx2685/v2node ---
-  ${green}0.${plain} 修改配置
+  ${green}0.${plain} Sửa cấu hình
 ————————————————
-  ${green}1.${plain} 安装 v2node
-  ${green}2.${plain} 更新 v2node
-  ${green}3.${plain} 卸载 v2node
+  ${green}1.${plain} Cài đặt v2node
+  ${green}2.${plain} Cập nhật v2node
+  ${green}3.${plain} Gỡ cài đặt v2node
 ————————————————
-  ${green}4.${plain} 启动 v2node
-  ${green}5.${plain} 停止 v2node
-  ${green}6.${plain} 重启 v2node
-  ${green}7.${plain} 查看 v2node 状态
-  ${green}8.${plain} 查看 v2node 日志
+  ${green}4.${plain} Khới động v2node
+  ${green}5.${plain} Dừng v2node
+  ${green}6.${plain} Khởi động lại v2node
+  ${green}7.${plain} Xem trạng thái v2node
+  ${green}8.${plain} Xem log của v2node
 ————————————————
-  ${green}9.${plain} 设置 v2node 开机自启
-  ${green}10.${plain} 取消 v2node 开机自启
+  ${green}9.${plain} Thiết lập v2node khởi động cùng hệ thống
+  ${green}10.${plain} Hủy v2node khởi động cùng hệ thống
 ————————————————
-  ${green}11.${plain} 查看 v2node 版本
-  ${green}12.${plain} 升级 v2node 维护脚本
-  ${green}13.${plain} 生成 v2node 配置文件
-  ${green}14.${plain} 放行 VPS 的所有网络端口
-  ${green}15.${plain} 退出脚本
- "
- #后续更新可加入上方字符串中
+  ${green}11.${plain} Xem phiên bản v2node
+  ${green}12.${plain} Nâng cấp script bảo trì v2node
+  ${green}13.${plain} Tạo tệp cấu hình v2node
+  ${green}14.${plain} Mở tất cả các cổng mạng VPS
+  ${green}15.${plain} Thoát script
+  "
+ #Sau này có thể thêm vào chuỗi trên
     show_status
-    echo && read -rp "请输入选择 [0-15]: " num
+    echo && read -rp "Vui lòng nhập lựa chọn [0-15]: " num
 
     case "${num}" in
         0) config ;;
@@ -556,7 +556,7 @@ show_menu() {
         13) generate_config_file ;;
         14) open_ports ;;
         15) exit ;;
-        *) echo -e "${red}请输入正确的数字 [0-15]${plain}" ;;
+        *) echo -e "${red}Vui lòng nhập số chính xác [0-15]${plain}" ;;
     esac
 }
 

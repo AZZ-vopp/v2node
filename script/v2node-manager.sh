@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -e
 set -u
-# 尝试启用 pipefail（如果支持）
+# Thử kích hoạt pipefail (nếu hỗ trợ)
 if (set -o pipefail 2>/dev/null); then
   set -o pipefail
 fi
 
-# V2Node 配置文件路径
+# Đường dẫn tệp cấu hình V2Node
 CONFIG_FILE="/etc/v2node/config.json"
 
-# 颜色样式
+# Màu sắc kiểu dáng
 RED='\033[31m'
 GREEN='\033[32m'
 YELLOW='\033[33m'
@@ -19,27 +19,27 @@ GRAY='\033[90m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
-# 检查 jq 是否安装
+# Kiểm tra jq đã cài đặt chưa
 check_jq() {
   if ! command -v jq &> /dev/null; then
-    echo -e "${RED}错误: jq 未安装${RESET}"
-    echo -e "${YELLOW}正在安装 jq...${RESET}"
+    echo -e "${RED}Lỗi: jq chưa được cài đặt${RESET}"
+    echo -e "${YELLOW}Đang cài đặt jq...${RESET}"
     if command -v apt-get &> /dev/null; then
       sudo apt-get update && sudo apt-get install -y jq
     elif command -v yum &> /dev/null; then
       sudo yum install -y jq
     else
-      echo -e "${RED}无法自动安装 jq，请手动安装${RESET}"
+      echo -e "${RED}Không thể tự động cài đặt jq, vui lòng cài đặt thủ công${RESET}"
       exit 1
     fi
   fi
 }
 
-# 检查配置文件是否存在
+# Kiểm tra tồn tại tệp cấu hình
 check_config() {
   if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo -e "${RED}配置文件不存在: $CONFIG_FILE${RESET}"
-    echo -e "${YELLOW}正在创建默认配置文件...${RESET}"
+    echo -e "${RED}Tệp cấu hình không tồn tại: $CONFIG_FILE${RESET}"
+    echo -e "${YELLOW}Đang tạo tệp cấu hình mặc định...${RESET}"
     sudo mkdir -p "$(dirname "$CONFIG_FILE")"
     sudo tee "$CONFIG_FILE" > /dev/null <<EOF
 {
@@ -51,14 +51,14 @@ check_config() {
     "Nodes": []
 }
 EOF
-    echo -e "${GREEN}已创建默认配置文件${RESET}"
+    echo -e "${GREEN}Đã tạo tệp cấu hình mặc định${RESET}"
   fi
 }
 
-# 重启 v2node 服务
+# Khởi động lại dịch vụ v2node
 restart_v2node() {
   echo ""
-  echo -e "${YELLOW}正在重启 v2node 服务...${RESET}"
+  echo -e "${YELLOW}Đang khởi động lại dịch vụ v2node...${RESET}"
   
   # 尝试使用 systemctl
   if command -v systemctl >/dev/null 2>&1; then
@@ -78,55 +78,55 @@ restart_v2node() {
     fi
   fi
   
-  # 如果都失败，提示手动重启
-  echo -e "${YELLOW}无法自动重启 v2node 服务，请手动重启${RESET}"
-  echo -e "${GRAY}可以尝试: systemctl restart v2node 或 service v2node restart${RESET}"
+  # Nếu tất cả thất bại, nhắc khởi động lại thủ công
+  echo -e "${YELLOW}Không thể tự động khởi động lại dịch vụ v2node, vui lòng khởi động lại thủ công${RESET}"
+  echo -e "${GRAY}Có thể thử: systemctl restart v2node hoặc service v2node restart${RESET}"
 }
 
-# 列出所有节点
+# Liệt kê tất cả các node
 list_nodes() {
-  echo -e "${BOLD}${CYAN}当前节点列表:${RESET}"
+  echo -e "${BOLD}${CYAN}Danh sách node hiện tại:${RESET}"
   echo ""
   
   local node_count=$(sudo jq '.Nodes | length' "$CONFIG_FILE")
   
   if [[ "$node_count" -eq 0 ]]; then
-    echo -e "${YELLOW}暂无节点${RESET}"
+    echo -e "${YELLOW}Chưa có node nào${RESET}"
     return
   fi
   
-  echo -e "${GRAY}共 $node_count 个节点${RESET}"
+  echo -e "${GRAY}Tổng $node_count node${RESET}"
   echo ""
   
-  # 使用 jq 格式化输出
+  # Sử dụng jq để định dạng đầu ra
   sudo jq -r '.Nodes | to_entries | .[] | 
-    "节点 #\(.key + 1)\n" +
+    "Node #\(.key + 1)\n" +
     "  NodeID: \(.value.NodeID)\n" +
     "  ApiHost: \(.value.ApiHost)\n" +
     "  ApiKey: \(.value.ApiKey)\n" +
     "  Timeout: \(.value.Timeout)\n"' "$CONFIG_FILE"
 }
 
-# 删除节点
+# Xóa node
 delete_node() {
   list_nodes
   echo ""
   
   local node_count=$(sudo jq '.Nodes | length' "$CONFIG_FILE")
   if [[ "$node_count" -eq 0 ]]; then
-    echo -e "${YELLOW}没有可删除的节点${RESET}"
+    echo -e "${YELLOW}Không có node nào để xóa${RESET}"
     return
   fi
   
-  echo -en "${BOLD}请输入要删除的节点编号或 NodeID (1-$node_count 或 NodeID，支持单个、范围或逗号分隔，如 1,3,5 或 1-5 或 96-98): ${RESET}"
+  echo -en "${BOLD}Nhập số thứ tự node hoặc NodeID cần xóa (1-$node_count hoặc NodeID, hỗ trợ đơn lẻ, phạm vi hoặc phân tách bằng dấu phẩy, ví dụ 1,3,5 hoặc 1-5 hoặc 96-98): ${RESET}"
   read -r input
   
   if [[ -z "$input" ]]; then
-    echo -e "${RED}取消操作${RESET}"
+    echo -e "${RED}Hủy thao tác${RESET}"
     return
   fi
   
-  # 获取所有 NodeID 列表（用于通过 NodeID 删除）
+  # Lấy danh sách tất cả NodeID (để xóa thông qua NodeID)
   local nodeid_list=()
   local nodeid_to_index=()
   local index=0
@@ -136,22 +136,22 @@ delete_node() {
     index=$((index + 1))
   done < <(sudo jq -r '.Nodes[].NodeID' "$CONFIG_FILE")
   
-  # 解析输入（支持逗号分隔的多个编号和范围）
+  # Phân tích đầu vào (hỗ trợ nhiều số phân tách bằng dấu phẩy và phạm vi)
   local all_numbers=()
   IFS=',' read -ra parts <<< "$input"
   
-  # 处理每个部分（可能是单个数字或范围）
+  # Xử lý từng phần (có thể là số đơn lẻ hoặc phạm vi)
   for part in "${parts[@]}"; do
     part=$(echo "$part" | tr -d ' ')
     if [[ -z "$part" ]]; then
       continue
     fi
     
-    # 尝试解析为范围或单个数字
-    # 先检查是否是纯数字（单个）
+    # Thử phân tích thành phạm vi hoặc số đơn lẻ
+    # Trước hết kiểm tra có phải là số nguyên thuần không (đơn lẻ)
     if [[ "$part" =~ ^[0-9]+$ ]]; then
       all_numbers+=("$part")
-    # 再检查是否是范围格式
+    # Kiểm tra xem có phải là định dạng phạm vi không
     elif [[ "$part" =~ ^[0-9]+-[0-9]+$ ]]; then
       local start=$(echo "$part" | cut -d'-' -f1)
       local end=$(echo "$part" | cut -d'-' -f2)
@@ -161,26 +161,26 @@ delete_node() {
           all_numbers+=("$i")
         done
       else
-        echo -e "${RED}范围错误: 起始值必须小于等于结束值 ($part)${RESET}"
+        echo -e "${RED}Lỗi phạm vi: giá trị bắt đầu phải nhỏ hơn hoặc bằng giá trị kết thúc ($part)${RESET}"
         return
       fi
     else
-      echo -e "${RED}无效的输入格式: $part (请输入数字或范围，如 96 或 96-98)${RESET}"
+      echo -e "${RED}Định dạng đầu vào không hợp lệ: $part (vui lòng nhập số hoặc phạm vi, ví dụ 96 hoặc 96-98)${RESET}"
       return
     fi
   done
   
   if [[ ${#all_numbers[@]} -eq 0 ]]; then
-    echo -e "${RED}没有有效的输入${RESET}"
+    echo -e "${RED}Không có đầu vào hợp lệ${RESET}"
     return
   fi
   
-  # 判断是节点编号还是 NodeID，并转换为数组索引
+  # Phán đoán là số thứ tự node hay NodeID, và chuyển đổi thành chỉ số mảng
   local delete_indices=()
   declare -A seen
   
   for num in "${all_numbers[@]}"; do
-    # 首先尝试作为节点编号（1 到 node_count）
+    # Trước tiên thử làm số thứ tự node (1 đến node_count)
     if [[ "$num" -ge 1 ]] && [[ "$num" -le "$node_count" ]]; then
       local idx=$((num - 1))
       if [[ -z "${seen[$idx]:-}" ]]; then
@@ -188,7 +188,7 @@ delete_node() {
         delete_indices+=($idx)
       fi
     else
-      # 如果不是节点编号，尝试作为 NodeID
+      # Nếu không phải số thứ tự node, thử làm NodeID
       local found=false
       for i in "${!nodeid_list[@]}"; do
         if [[ "${nodeid_list[$i]}" == "$num" ]]; then
@@ -202,20 +202,20 @@ delete_node() {
       done
       
       if [[ "$found" == "false" ]]; then
-        echo -e "${YELLOW}警告: 未找到 NodeID $num，跳过${RESET}"
+        echo -e "${YELLOW}Cảnh báo: Không tìm thấy NodeID $num, bỏ qua${RESET}"
       fi
     fi
   done
   
   if [[ ${#delete_indices[@]} -eq 0 ]]; then
-    echo -e "${RED}没有找到要删除的节点${RESET}"
+    echo -e "${RED}Không tìm thấy node cần xóa${RESET}"
     return
   fi
   
-  # 排序（从大到小，避免删除后索引变化）
+  # Sắp xếp (từ lớn đến nhỏ, tránh chỉ số thay đổi sau khi xóa)
   IFS=$'\n' delete_indices=($(printf '%s\n' "${delete_indices[@]}" | sort -rn))
   
-  # 删除节点（从后往前删除，避免索引变化）
+  # Xóa node (xóa từ sau ra trước, tránh chỉ số thay đổi)
   local temp_file=$(mktemp)
   sudo cp "$CONFIG_FILE" "$temp_file"
   
@@ -227,13 +227,13 @@ delete_node() {
   sudo mv "$temp_file" "$CONFIG_FILE"
   sudo chmod 644 "$CONFIG_FILE"
   
-  echo -e "${GREEN}已删除 ${#delete_indices[@]} 个节点${RESET}"
+  echo -e "${GREEN}Đã xóa ${#delete_indices[@]} node${RESET}"
   
-  # 重启 v2node 服务
+  # Khởi động lại dịch vụ v2node
   restart_v2node
 }
 
-# 解析范围输入（如 1-5）
+# Phân tích đầu vào phạm vi (ví dụ 1-5)
 parse_range() {
   local input="$1"
   local result=()
@@ -247,22 +247,22 @@ parse_range() {
         result+=($i)
       done
     else
-      echo -e "${RED}范围错误: 起始值必须小于等于结束值${RESET}" >&2
+      echo -e "${RED}Lỗi phạm vi: giá trị bắt đầu phải nhỏ hơn hoặc bằng giá trị kết thúc${RESET}" >&2
       return 1
     fi
   elif [[ "$input" =~ ^[0-9]+$ ]]; then
     result+=($input)
   else
-    echo -e "${RED}格式错误: 请输入数字或范围（如 1-5）${RESET}" >&2
+    echo -e "${RED}Lỗi định dạng: vui lòng nhập số hoặc phạm vi (ví dụ 1-5)${RESET}" >&2
     return 1
   fi
   
   echo "${result[@]}"
 }
 
-# 添加节点
+# Thêm node
 add_node() {
-  echo -e "${BOLD}${CYAN}添加新节点${RESET}"
+  echo -e "${BOLD}${CYAN}Thêm node mới${RESET}"
   echo ""
   
   local node_count=$(sudo jq '.Nodes | length' "$CONFIG_FILE")
@@ -270,21 +270,21 @@ add_node() {
   local api_key=""
   local timeout=15
   
-  # 如果有现有节点，询问是否沿用
+  # Nếu có node hiện có, hỏi có muốn dùng lại không
   if [[ "$node_count" -gt 0 ]]; then
-    echo -e "${BOLD}是否沿用已有节点的 ApiHost 和 ApiKey？${RESET}"
-    echo -e "  ${YELLOW}1)${RESET} 是，选择已有节点"
-    echo -e "  ${YELLOW}2)${RESET} 否，手动输入"
-    echo -en "${BOLD}你的选择 (默认: 2): ${RESET}"
+    echo -e "${BOLD}Có dùng lại ApiHost và ApiKey của node hiện có không?${RESET}"
+    echo -e "  ${YELLOW}1)${RESET} Có, chọn node hiện có"
+    echo -e "  ${YELLOW}2)${RESET} Không, nhập thủ công"
+    echo -en "${BOLD}Lựa chọn của bạn (mặc định: 2): ${RESET}"
     read -r use_existing
     
     if [[ "$use_existing" == "1" ]]; then
-      # 列出所有节点供选择
+      # Liệt kê tất cả node để chọn
       echo ""
-      echo -e "${BOLD}${CYAN}请选择要沿用的节点:${RESET}"
+      echo -e "${BOLD}${CYAN}Vui lòng chọn node cần dùng lại:${RESET}"
       echo ""
       
-      # 显示节点列表
+      # Hiển thị danh sách node
       local index=0
       while IFS=$'\t' read -r nodeid host key; do
         index=$((index + 1))
@@ -292,11 +292,11 @@ add_node() {
       done < <(sudo jq -r '.Nodes[] | "\(.NodeID)\t\(.ApiHost)\t\(.ApiKey)"' "$CONFIG_FILE")
       
       echo ""
-      echo -en "${BOLD}请输入节点编号 (1-$node_count): ${RESET}"
+      echo -en "${BOLD}Nhập số thứ tự node (1-$node_count): ${RESET}"
       read -r selected_index
       
       if [[ -z "$selected_index" ]] || ! [[ "$selected_index" =~ ^[0-9]+$ ]] || [[ "$selected_index" -lt 1 ]] || [[ "$selected_index" -gt "$node_count" ]]; then
-        echo -e "${RED}无效的节点编号，取消操作${RESET}"
+        echo -e "${RED}Số thứ tự node không hợp lệ, hủy thao tác${RESET}"
         return
       fi
       
@@ -306,70 +306,70 @@ add_node() {
       timeout=$(sudo jq -r ".Nodes[$array_index].Timeout" "$CONFIG_FILE")
       
       echo ""
-      echo -e "${GREEN}已选择节点配置:${RESET}"
+      echo -e "${GREEN}Đã chọn cấu hình node:${RESET}"
       echo -e "  ${GRAY}ApiHost: $api_host${RESET}"
       echo -e "  ${GRAY}ApiKey: $api_key${RESET}"
       echo -e "  ${GRAY}Timeout: $timeout${RESET}"
       echo ""
     else
-      # 手动输入配置
+      # Nhập cấu hình thủ công
       echo ""
       echo -en "${BOLD}API Host: ${RESET}"
       read -r api_host
       if [[ -z "$api_host" ]]; then
-        echo -e "${RED}API Host 不能为空${RESET}"
+        echo -e "${RED}API Host không được để trống${RESET}"
         return
       fi
       
       echo -en "${BOLD}API Key: ${RESET}"
       read -r api_key
       if [[ -z "$api_key" ]]; then
-        echo -e "${RED}API Key 不能为空${RESET}"
+        echo -e "${RED}API Key không được để trống${RESET}"
         return
       fi
       
-      echo -en "${BOLD}Timeout (默认: 15): ${RESET}"
+      echo -en "${BOLD}Timeout (mặc định: 15): ${RESET}"
       read -r timeout_input
       timeout=${timeout_input:-15}
     fi
   else
-    # 没有现有节点，必须手动输入
+    # Không có node hiện có, phải nhập thủ công
     echo -en "${BOLD}API Host: ${RESET}"
     read -r api_host
     if [[ -z "$api_host" ]]; then
-      echo -e "${RED}API Host 不能为空${RESET}"
+      echo -e "${RED}API Host không được để trống${RESET}"
       return
     fi
     
     echo -en "${BOLD}API Key: ${RESET}"
     read -r api_key
     if [[ -z "$api_key" ]]; then
-      echo -e "${RED}API Key 不能为空${RESET}"
+      echo -e "${RED}API Key không được để trống${RESET}"
       return
     fi
     
-    echo -en "${BOLD}Timeout (默认: 15): ${RESET}"
+    echo -en "${BOLD}Timeout (mặc định: 15): ${RESET}"
     read -r timeout_input
     timeout=${timeout_input:-15}
   fi
   
-  # 输入 NodeID
+  # Nhập NodeID
   echo ""
-  echo -en "${BOLD}NodeID (单个数字，如 95，或范围，如 1-5): ${RESET}"
+  echo -en "${BOLD}NodeID (số đơn lẻ, ví dụ 95, hoặc phạm vi, ví dụ 1-5): ${RESET}"
   read -r nodeid_input
   
   if [[ -z "$nodeid_input" ]]; then
-    echo -e "${RED}取消操作${RESET}"
+    echo -e "${RED}Hủy thao tác${RESET}"
     return
   fi
   
-  # 解析 NodeID（支持单个或范围）
+  # Phân tích NodeID (hỗ trợ đơn lẻ hoặc phạm vi)
   local nodeids
   if ! nodeids=$(parse_range "$nodeid_input"); then
     return
   fi
   
-  # 检查 NodeID 是否已存在
+  # Kiểm tra NodeID có tồn tại chưa
   local existing_nodeids=()
   if [[ "$node_count" -gt 0 ]]; then
     while IFS= read -r nodeid; do
@@ -379,11 +379,11 @@ add_node() {
   
   local nodes_to_add=()
   for nodeid in $nodeids; do
-    # 检查是否已存在
+    # Kiểm tra đã tồn tại chưa
     local exists=false
     for existing in "${existing_nodeids[@]}"; do
       if [[ "$nodeid" == "$existing" ]]; then
-        echo -e "${YELLOW}警告: NodeID $nodeid 已存在，将跳过${RESET}"
+        echo -e "${YELLOW}Cảnh báo: NodeID $nodeid đã tồn tại, sẽ bỏ qua${RESET}"
         exists=true
         break
       fi
@@ -395,11 +395,11 @@ add_node() {
   done
   
   if [[ ${#nodes_to_add[@]} -eq 0 ]]; then
-    echo -e "${RED}没有可添加的节点（所有 NodeID 都已存在）${RESET}"
+    echo -e "${RED}Không có node nào để thêm (tất cả NodeID đều đã tồn tại)${RESET}"
     return
   fi
   
-  # 添加节点
+  # Thêm node
   local temp_file=$(mktemp)
   sudo cp "$CONFIG_FILE" "$temp_file"
   
@@ -424,36 +424,36 @@ add_node() {
   sudo chmod 644 "$CONFIG_FILE"
   
   echo ""
-  echo -e "${GREEN}已添加 ${#nodes_to_add[@]} 个节点${RESET}"
+  echo -e "${GREEN}Đã thêm ${#nodes_to_add[@]} node${RESET}"
   echo -e "${GRAY}NodeID: ${nodes_to_add[*]}${RESET}"
   echo -e "${GRAY}ApiHost: $api_host${RESET}"
   
-  # 重启 v2node 服务
+  # Khởi động lại dịch vụ v2node
   restart_v2node
 }
 
-# 编辑节点
+# Sửa node
 edit_node() {
   list_nodes
   echo ""
   
   local node_count=$(sudo jq '.Nodes | length' "$CONFIG_FILE")
   if [[ "$node_count" -eq 0 ]]; then
-    echo -e "${YELLOW}没有可编辑的节点${RESET}"
+    echo -e "${YELLOW}Không có node nào để sửa${RESET}"
     return
   fi
   
-  echo -en "${BOLD}请输入要编辑的节点编号 (1-$node_count): ${RESET}"
+  echo -en "${BOLD}Nhập số thứ tự node cần sửa (1-$node_count): ${RESET}"
   read -r node_index
   
   if [[ -z "$node_index" ]] || ! [[ "$node_index" =~ ^[0-9]+$ ]] || [[ "$node_index" -lt 1 ]] || [[ "$node_index" -gt "$node_count" ]]; then
-    echo -e "${RED}无效的节点编号${RESET}"
+    echo -e "${RED}Số thứ tự node không hợp lệ${RESET}"
     return
   fi
   
   local array_index=$((node_index - 1))
   
-  # 获取当前值
+  # Lấy giá trị hiện tại
   local current_node=$(sudo jq ".Nodes[$array_index]" "$CONFIG_FILE")
   local current_nodeid=$(echo "$current_node" | jq -r '.NodeID')
   local current_api_host=$(echo "$current_node" | jq -r '.ApiHost')
@@ -461,31 +461,31 @@ edit_node() {
   local current_timeout=$(echo "$current_node" | jq -r '.Timeout')
   
   echo ""
-  echo -e "${GRAY}当前配置:${RESET}"
+  echo -e "${GRAY}Cấu hình hiện tại:${RESET}"
   echo -e "  NodeID: $current_nodeid"
   echo -e "  ApiHost: $current_api_host"
   echo -e "  ApiKey: $current_api_key"
   echo -e "  Timeout: $current_timeout"
   echo ""
   
-  # 输入新值（回车保持原值）
-  echo -en "${BOLD}NodeID (默认: $current_nodeid): ${RESET}"
+  # Nhập giá trị mới (Enter giữ nguyên giá trị cũ)
+  echo -en "${BOLD}NodeID (mặc định: $current_nodeid): ${RESET}"
   read -r new_nodeid
   new_nodeid=${new_nodeid:-$current_nodeid}
   
-  echo -en "${BOLD}API Host (默认: $current_api_host): ${RESET}"
+  echo -en "${BOLD}API Host (mặc định: $current_api_host): ${RESET}"
   read -r new_api_host
   new_api_host=${new_api_host:-$current_api_host}
   
-  echo -en "${BOLD}API Key (默认: $current_api_key): ${RESET}"
+  echo -en "${BOLD}API Key (mặc định: $current_api_key): ${RESET}"
   read -r new_api_key
   new_api_key=${new_api_key:-$current_api_key}
   
-  echo -en "${BOLD}Timeout (默认: $current_timeout): ${RESET}"
+  echo -en "${BOLD}Timeout (mặc định: $current_timeout): ${RESET}"
   read -r new_timeout
   new_timeout=${new_timeout:-$current_timeout}
   
-  # 检查 NodeID 是否与其他节点冲突
+  # Kiểm tra NodeID có xung đột với node khác không
   if [[ "$new_nodeid" != "$current_nodeid" ]]; then
     local existing_nodeids=()
     while IFS= read -r nodeid; do
@@ -496,13 +496,13 @@ edit_node() {
     
     for existing in "${existing_nodeids[@]}"; do
       if [[ "$new_nodeid" == "$existing" ]]; then
-        echo -e "${RED}错误: NodeID $new_nodeid 已被其他节点使用${RESET}"
+        echo -e "${RED}Lỗi: NodeID $new_nodeid đã được node khác sử dụng${RESET}"
         return
       fi
     done
   fi
   
-  # 更新节点
+  # Cập nhật node
   local temp_file=$(mktemp)
   sudo jq \
     --argjson nodeid "$new_nodeid" \
@@ -519,27 +519,27 @@ edit_node() {
   sudo mv "$temp_file" "$CONFIG_FILE"
   sudo chmod 644 "$CONFIG_FILE"
   
-  echo -e "${GREEN}节点已更新${RESET}"
+  echo -e "${GREEN}Node đã được cập nhật${RESET}"
   
-  # 重启 v2node 服务
+  # Khởi động lại dịch vụ v2node
   restart_v2node
 }
 
-# 主菜单
+# Menu chính
 function v2node_menu() {
   while true; do
     echo ""
-    echo -e "${BOLD}${CYAN}V2Node 配置管理${RESET}"
-    echo -e "${GRAY}配置文件: $CONFIG_FILE${RESET}"
+    echo -e "${BOLD}${CYAN}Quản lý cấu hình V2Node${RESET}"
+    echo -e "${GRAY}Tệp cấu hình: $CONFIG_FILE${RESET}"
     echo ""
-    echo -e "${BOLD}请选择要执行的操作 (输入数字回车):${RESET}"
-    echo -e "  ${YELLOW}1)${RESET} 列出所有节点"
-    echo -e "  ${YELLOW}2)${RESET} 添加节点 (${GRAY}支持范围添加，如 1-5${RESET})"
-    echo -e "  ${YELLOW}3)${RESET} 删除节点 (${GRAY}支持范围删除，如 1-5 或 96-98${RESET})"
-    echo -e "  ${YELLOW}4)${RESET} 编辑节点"
-    echo -e "  ${YELLOW}5)${RESET} 查看配置文件内容"
-    echo -e "  ${YELLOW}0)${RESET} 返回主菜单"
-    echo -en "${BOLD}你的选择:${RESET} "
+    echo -e "${BOLD}Vui lòng chọn thao tác cần thực hiện (nhập số và Enter):${RESET}"
+    echo -e "  ${YELLOW}1)${RESET} Liệt kê tất cả node"
+    echo -e "  ${YELLOW}2)${RESET} Thêm node (${GRAY}hỗ trợ thêm theo phạm vi, ví dụ 1-5${RESET})"
+    echo -e "  ${YELLOW}3)${RESET} Xóa node (${GRAY}hỗ trợ xóa theo phạm vi, ví dụ 1-5 hoặc 96-98${RESET})"
+    echo -e "  ${YELLOW}4)${RESET} Sửa node"
+    echo -e "  ${YELLOW}5)${RESET} Xem nội dung tệp cấu hình"
+    echo -e "  ${YELLOW}0)${RESET} Quay về menu chính"
+    echo -en "${BOLD}Lựa chọn của bạn:${RESET} "
     
     read -r choice
     
@@ -547,52 +547,52 @@ function v2node_menu() {
       1) 
         list_nodes
         echo ""
-        echo -e "${GREEN}完成。${RESET}按回车键继续..."
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
         read -r
         ;;
       2) 
         add_node
         echo ""
-        echo -e "${GREEN}完成。${RESET}按回车键继续..."
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
         read -r
         ;;
       3) 
         delete_node
         echo ""
-        echo -e "${GREEN}完成。${RESET}按回车键继续..."
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
         read -r
         ;;
       4) 
         edit_node
         echo ""
-        echo -e "${GREEN}完成。${RESET}按回车键继续..."
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
         read -r
         ;;
       5) 
         echo ""
-        echo -e "${BOLD}${CYAN}配置文件内容:${RESET}"
+        echo -e "${BOLD}${CYAN}Nội dung tệp cấu hình:${RESET}"
         sudo cat "$CONFIG_FILE" | jq .
         echo ""
-        echo -e "${GREEN}完成。${RESET}按回车键继续..."
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
         read -r
         ;;
       0) 
         return 0
         ;;
       *) 
-        echo -e "${RED}无效选项${RESET}，请重新选择"
+        echo -e "${RED}Tùy chọn không hợp lệ${RESET}, vui lòng chọn lại"
         sleep 1
         ;;
     esac
   done
 }
 
-# 主函数
+# Hàm chính
 main() {
-  # 显示标题
+  # Hiển thị tiêu đề
   echo -e "${BLUE}==============================================${RESET}"
-  echo -e "${BOLD}${CYAN} V2Node 配置管理工具${RESET}"
-  echo -e "${GRAY}配置文件: $CONFIG_FILE${RESET}"
+  echo -e "${BOLD}${CYAN} Công cụ quản lý cấu hình V2Node${RESET}"
+  echo -e "${GRAY}Tệp cấu hình: $CONFIG_FILE${RESET}"
   echo -e "${BLUE}==============================================${RESET}"
   
   check_jq
@@ -600,7 +600,7 @@ main() {
   v2node_menu
 }
 
-# 如果直接执行此脚本
+# Nếu chạy trực tiếp script này
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main
 fi
