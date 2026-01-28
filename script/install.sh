@@ -281,7 +281,7 @@ install_v2node() {
         fi
     else
     last_version=$version_param
-        url="https://github.com/wyx2685/v2node/releases/download/${last_version}/v2node-linux-${arch}.zip"
+        url="https://github.com/AZZ-vopp/v2node/releases/download/${last_version}/v2node-linux-${arch}.zip"
         curl -sL "$url" | pv -s 30M -W -N "Tiến độ tải xuống" > /usr/local/v2node/v2node-linux.zip
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Tải xuống v2node $1 thất bại, vui lòng đảm bảo phiên bản này tồn tại${plain}"
