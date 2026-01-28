@@ -123,7 +123,7 @@ update() {
     else
         version=$2
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh) $version
+    bash <(curl -Ls https://raw.githubusercontent.com/AZZ-vopp/v2node/master/script/install.sh) $version
     if [[ $? == 0 ]]; then
         echo -e "${green}Cập nhật hoàn tất, đã tự động khởi động lại v2node, vui lòng sử dụng v2node log để xem log chạy${plain}"
         exit
@@ -307,7 +307,7 @@ show_log() {
 }
 
 update_shell() {
-    wget -O /usr/bin/v2node -N --no-check-certificate https://raw.githubusercontent.com/wyx2685/v2node/master/script/v2node.sh
+    wget -O /usr/bin/v2node -N --no-check-certificate https://raw.githubusercontent.com/AZZ-vopp/v2node/master/script/v2node.sh
     if [[ $? != 0 ]]; then
         echo ""
         echo -e "${red}Tải script thất bại, vui lòng kiểm tra máy có kết nối được Github không${plain}"
@@ -513,7 +513,7 @@ show_usage() {
 show_menu() {
     echo -e "
   ${green}Script quản lý backend v2node,${plain}${red}không áp dụng cho docker${plain}
---- https://github.com/wyx2685/v2node ---
+--- https://github.com/AZZ-vopp/v2node ---
   ${green}0.${plain} Sửa cấu hình
 ————————————————
   ${green}1.${plain} Cài đặt v2node

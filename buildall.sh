@@ -47,7 +47,7 @@ build_platform() {
         OUTPUT_NAME="v2node.exe"
     fi
     
-    GOEXPERIMENT=jsonv2 go build -v -o "$TEMP_DIR/$OUTPUT_NAME" -trimpath -ldflags "-X 'github.com/wyx2685/v2node/cmd.version=$VERSION' -s -w -buildid="
+    GOEXPERIMENT=jsonv2 go build -v -o "$TEMP_DIR/$OUTPUT_NAME" -trimpath -ldflags "-X 'github.com/AZZ-vopp/v2node/cmd.version=$VERSION' -s -w -buildid="
     
     if [ $? -eq 0 ]; then
         # Copy additional files

@@ -161,7 +161,7 @@ install_v2node() {
   fi
   
   echo -e "${YELLOW}Đang tải và chạy script cài đặt v2node...${RESET}"
-  bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh)
+  bash <(curl -Ls https://raw.githubusercontent.com/AZZ-vopp/v2node/master/script/install.sh)
   
   if check_v2node; then
     echo -e "${GREEN}✓ V2Node đã được cài đặt thành công!${RESET}"
@@ -190,7 +190,7 @@ update_v2node() {
   echo ""
   
   echo -e "${YELLOW}Đang cập nhật v2node...${RESET}"
-  bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh)
+  bash <(curl -Ls https://raw.githubusercontent.com/AZZ-vopp/v2node/master/script/install.sh)
   
   echo ""
   echo -e "${GREEN}✓ Cập nhật hoàn tất${RESET}"

@@ -267,13 +267,13 @@ install_v2node() {
     cd /usr/local/v2node/
 
     if  [[ -z "$version_param" ]] ; then
-        last_version=$(curl -Ls "https://api.github.com/repos/wyx2685/v2node/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(curl -Ls "https://api.github.com/repos/AZZ-vopp/v2node/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
             echo -e "${red}Phát hiện phiên bản v2node thất bại, có thể do vượt giới hạn API của Github, vui lòng thử lại sau, hoặc chỉ định phiên bản v2node thủ công để cài đặt${plain}"
             exit 1
         fi
         echo -e "${green}Phát hiện phiên bản mới nhất: ${last_version}, bắt đầu cài đặt...${plain}"
-        url="https://github.com/wyx2685/v2node/releases/download/${last_version}/v2node-linux-${arch}.zip"
+        url="https://github.com/AZZ-vopp/v2node/releases/download/${last_version}/v2node-linux-${arch}.zip"
         curl -sL "$url" | pv -s 30M -W -N "Tiến độ tải xuống" > /usr/local/v2node/v2node-linux.zip
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Tải xuống v2node thất bại, vui lòng đảm bảo máy chủ của bạn có thể tải xuống tệp từ Github${plain}"
@@ -375,7 +375,7 @@ EOF
     fi
 
 
-    curl -o /usr/bin/v2node -Ls https://raw.githubusercontent.com/wyx2685/v2node/main/script/v2node.sh
+    curl -o /usr/bin/v2node -Ls https://raw.githubusercontent.com/AZZ-vopp/v2node/main/script/v2node.sh
     chmod +x /usr/bin/v2node
 
     cd $cur_dir
