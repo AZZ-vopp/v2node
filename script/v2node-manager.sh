@@ -8,6 +8,8 @@ fi
 
 # Đường dẫn tệp cấu hình V2Node
 CONFIG_FILE="/etc/v2node/config.json"
+BACKUP_DIR="/etc/v2node/backups"
+V2NODE_BIN="/usr/local/v2node/v2node"
 
 # Màu sắc kiểu dáng
 RED='\033[31m'
@@ -19,19 +21,55 @@ GRAY='\033[90m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
+# Kiểm tra quyền root
+check_root() {
+  if [[ $EUID -ne 0 ]]; then
+    echo -e "${RED}Lỗi: Script này cần quyền root để chạy!${RESET}"
+    echo -e "${YELLOW}Vui lòng chạy với: sudo $0${RESET}"
+    exit 1
+  fi
+}
+
 # Kiểm tra jq đã cài đặt chưa
 check_jq() {
   if ! command -v jq &> /dev/null; then
     echo -e "${RED}Lỗi: jq chưa được cài đặt${RESET}"
-    echo -e "${YELLOW}Đang cài đặt jq...${RESET}"
+    echo -e "${YELLOW}Đang tự động cài đặt jq...${RESET}"
     if command -v apt-get &> /dev/null; then
-      sudo apt-get update && sudo apt-get install -y jq
+      apt-get update -qq && apt-get install -y -qq jq > /dev/null 2>&1
     elif command -v yum &> /dev/null; then
-      sudo yum install -y jq
+      yum install -y -q jq > /dev/null 2>&1
+    elif command -v apk &> /dev/null; then
+      apk add --no-cache jq > /dev/null 2>&1
     else
-      echo -e "${RED}Không thể tự động cài đặt jq, vui lòng cài đặt thủ công${RESET}"
+      echo -e "${RED}Không thể tự động cài đặt jq!${RESET}"
+      echo -e "${YELLOW}Vui lòng cài đặt thủ công: apt-get install jq hoặc yum install jq${RESET}"
       exit 1
     fi
+    if command -v jq &> /dev/null; then
+      echo -e "${GREEN}✓ Đã cài đặt jq thành công${RESET}"
+    fi
+  fi
+}
+
+# Kiểm tra v2node đã cài đặt chưa
+check_v2node() {
+  if [[ ! -f "$V2NODE_BIN" ]]; then
+    return 1
+  fi
+  return 0
+}
+
+# Tạo backup config trước khi sửa
+backup_config() {
+  if [[ -f "$CONFIG_FILE" ]]; then
+    mkdir -p "$BACKUP_DIR"
+    local backup_file="${BACKUP_DIR}/config_$(date +%Y%m%d_%H%M%S).json"
+    cp "$CONFIG_FILE" "$backup_file"
+    echo -e "${GRAY}→ Đã backup config: $(basename $backup_file)${RESET}"
+    
+    # Giữ tối đa 10 backup gần nhất
+    ls -t "$BACKUP_DIR"/config_*.json 2>/dev/null | tail -n +11 | xargs -r rm
   fi
 }
 
@@ -44,7 +82,7 @@ check_config() {
     sudo tee "$CONFIG_FILE" > /dev/null <<EOF
 {
     "Log": {
-        "Level": "warning",
+        "Level": "none",
         "Output": "",
         "Access": "none"
     },
@@ -107,8 +145,96 @@ list_nodes() {
     "  Timeout: \(.value.Timeout)\n"' "$CONFIG_FILE"
 }
 
-# Xóa node
+# Cài đặt v2node
+install_v2node() {
+  echo -e "${BOLD}${CYAN}Cài đặt V2Node${RESET}"
+  echo ""
+  
+  if check_v2node; then
+    echo -e "${YELLOW}V2Node đã được cài đặt tại: $V2NODE_BIN${RESET}"
+    echo -en "${BOLD}Bạn có muốn cài đặt lại không? [y/N]: ${RESET}"
+    read -r confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+      echo -e "${GREEN}Hủy cài đặt${RESET}"
+      return
+    fi
+  fi
+  
+  echo -e "${YELLOW}Đang tải và chạy script cài đặt v2node...${RESET}"
+  bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh)
+  
+  if check_v2node; then
+    echo -e "${GREEN}✓ V2Node đã được cài đặt thành công!${RESET}"
+  else
+    echo -e "${RED}✗ Cài đặt V2Node thất bại${RESET}"
+  fi
+}
+
+# Cập nhật v2node
+update_v2node() {
+  echo -e "${BOLD}${CYAN}Cập nhật V2Node${RESET}"
+  echo ""
+  
+  if ! check_v2node; then
+    echo -e "${RED}V2Node chưa được cài đặt!${RESET}"
+    echo -en "${BOLD}Bạn có muốn cài đặt ngay không? [Y/n]: ${RESET}"
+    read -r confirm
+    if [[ ! "$confirm" =~ ^[Nn]$ ]]; then
+      install_v2node
+    fi
+    return
+  fi
+  
+  echo -e "${GRAY}Phiên bản hiện tại:${RESET}"
+  $V2NODE_BIN version 2>/dev/null || echo "Không xác định được"
+  echo ""
+  
+  echo -e "${YELLOW}Đang cập nhật v2node...${RESET}"
+  bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh)
+  
+  echo ""
+  echo -e "${GREEN}✓ Cập nhật hoàn tất${RESET}"
+  echo -e "${GRAY}Phiên bản mới:${RESET}"
+  $V2NODE_BIN version 2>/dev/null || echo "Không xác định được"
+}
+
+# Xem trạng thái dịch vụ v2node  
+show_v2node_status() {
+  echo -e "${BOLD}${CYAN}Trạng thái V2Node${RESET}"
+  echo ""
+  
+  if ! check_v2node; then
+    echo -e "${RED}✗ V2Node chưa được cài đặt${RESET}"
+    return 1
+  fi
+  
+  echo -e "${GREEN}✓ V2Node đã cài đặt${RESET}"
+  echo -e "${GRAY}Vị trí: $V2NODE_BIN${RESET}"
+  echo ""
+  
+  # Kiểm tra dịch vụ
+  if command -v systemctl >/dev/null 2>&1; then
+    if systemctl is-active --quiet v2node; then
+      echo -e "${GREEN}✓ Dịch vụ đang chạy${RESET}"
+    else
+      echo -e "${YELLOW}⚠ Dịch vụ không chạy${RESET}"
+    fi
+    
+    if systemctl is-enabled --quiet v2node 2>/dev/null; then
+      echo -e "${GREEN}✓ Khởi động cùng hệ thống: Bật${RESET}"
+    else
+      echo -e "${GRAY}○ Khởi động cùng hệ thống: Tắt${RESET}"
+    fi
+  fi
+  
+  echo ""
+  echo -e "${GRAY}Phiên bản:${RESET}"
+  $V2NODE_BIN version 2>/dev/null || echo "Không xác định được"
+}
+
+# Xóa node (có backup)
 delete_node() {
+  backup_config
   list_nodes
   echo ""
   
@@ -260,8 +386,9 @@ parse_range() {
   echo "${result[@]}"
 }
 
-# Thêm node
+# Thêm node (có backup)
 add_node() {
+  backup_config
   echo -e "${BOLD}${CYAN}Thêm node mới${RESET}"
   echo ""
   
@@ -432,8 +559,9 @@ add_node() {
   restart_v2node
 }
 
-# Sửa node
+# Sửa node (có backup)
 edit_node() {
+  backup_config
   list_nodes
   echo ""
   
@@ -529,25 +657,62 @@ edit_node() {
 function v2node_menu() {
   while true; do
     echo ""
-    echo -e "${BOLD}${CYAN}Quản lý cấu hình V2Node${RESET}"
-    echo -e "${GRAY}Tệp cấu hình: $CONFIG_FILE${RESET}"
+    echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    echo -e "${BOLD}${CYAN}      Công cụ quản lý V2Node Pro${RESET}"
+    echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    echo -e "${GRAY}Config: $CONFIG_FILE${RESET}"
+    
+    # Hiển thị trạng thái quick
+    if check_v2node; then
+      echo -e "${GREEN}● V2Node: Đã cài${RESET}"
+    else
+      echo -e "${RED}○ V2Node: Chưa cài${RESET}"
+    fi
+    
     echo ""
-    echo -e "${BOLD}Vui lòng chọn thao tác cần thực hiện (nhập số và Enter):${RESET}"
-    echo -e "  ${YELLOW}1)${RESET} Liệt kê tất cả node"
-    echo -e "  ${YELLOW}2)${RESET} Thêm node (${GRAY}hỗ trợ thêm theo phạm vi, ví dụ 1-5${RESET})"
-    echo -e "  ${YELLOW}3)${RESET} Xóa node (${GRAY}hỗ trợ xóa theo phạm vi, ví dụ 1-5 hoặc 96-98${RESET})"
-    echo -e "  ${YELLOW}4)${RESET} Sửa node"
-    echo -e "  ${YELLOW}5)${RESET} Xem nội dung tệp cấu hình"
-    echo -e "  ${YELLOW}0)${RESET} Quay về menu chính"
-    echo -en "${BOLD}Lựa chọn của bạn:${RESET} "
+    echo -e "${BOLD}┌─ Quản lý cài đặt${RESET}"
+    echo -e "  ${YELLOW}i${RESET}) Cài đặt/Cài lại V2Node"
+    echo -e "  ${YELLOW}u${RESET}) Cập nhật V2Node lên phiên bản mới nhất"
+    echo -e "  ${YELLOW}s${RESET}) Xem trạng thái V2Node"
+    echo ""
+    echo -e "${BOLD}┌─ Quản lý Node${RESET}"
+    echo -e "  ${YELLOW}1${RESET}) Liệt kê tất cả node"
+    echo -e "  ${YELLOW}2${RESET}) Thêm node ${GRAY}(hỗ trợ phạm vi: 1-5)${RESET}"
+    echo -e "  ${YELLOW}3${RESET}) Xóa node ${GRAY}(hỗ trợ phạm vi: 1-5, 96-98)${RESET}"
+    echo -e "  ${YELLOW}4${RESET}) Sửa node"
+    echo ""
+    echo -e "${BOLD}┌─ Tiện ích${RESET}"
+    echo -e "  ${YELLOW}5${RESET}) Xem nội dung file config"
+    echo -e "  ${YELLOW}b${RESET}) Khôi phục từ backup"
+    echo -e "  ${YELLOW}0${RESET}) Thoát"
+    echo ""
+    echo -en "${BOLD}Lựa chọn ➜ ${RESET}"
     
     read -r choice
     
     case "$choice" in
+      i|I)
+        install_v2node
+        echo ""
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
+        read -r
+        ;;
+      u|U)
+        update_v2node
+        echo ""
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
+        read -r
+        ;;
+      s|S)
+        show_v2node_status
+        echo ""
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
+        read -r
+        ;;
       1) 
         list_nodes
         echo ""
-        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
         read -r
         ;;
       2) 
@@ -571,32 +736,112 @@ function v2node_menu() {
       5) 
         echo ""
         echo -e "${BOLD}${CYAN}Nội dung tệp cấu hình:${RESET}"
-        sudo cat "$CONFIG_FILE" | jq .
+        cat "$CONFIG_FILE" | jq . 2>/dev/null || cat "$CONFIG_FILE"
+        echo ""
+        echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
+        read -r
+        ;;
+      b|B)
+        restore_backup
         echo ""
         echo -e "${GREEN}Hoàn tất.${RESET} Bấm Enter để tiếp tục..."
         read -r
         ;;
       0) 
+        echo -e "${GREEN}Tạm biệt!${RESET}"
         return 0
         ;;
       *) 
-        echo -e "${RED}Tùy chọn không hợp lệ${RESET}, vui lòng chọn lại"
+        echo -e "${RED}Lựa chọn không hợp lệ${RESET}"
         sleep 1
         ;;
     esac
   done
 }
 
+# Khôi phục từ backup
+restore_backup() {
+  echo -e "${BOLD}${CYAN}Khôi phục cấu hình từ backup${RESET}"
+  echo ""
+  
+  if [[ ! -d "$BACKUP_DIR" ]] || [[ -z "$(ls -A "$BACKUP_DIR" 2>/dev/null)" ]]; then
+    echo -e "${YELLOW}Không tìm thấy file backup nào${RESET}"
+    return
+  fi
+  
+  echo -e "${BOLD}Danh sách backup có sẵn:${RESET}"
+  echo ""
+  
+  local backups=()
+  local index=1
+  while IFS= read -r backup; do
+    backups+=("$backup")
+    local size=$(du -h "$backup" 2>/dev/null | cut -f1)
+    local date=$(basename "$backup" | sed 's/config_\(.*\)\.json/\1/' | sed 's/_/ /')
+    echo -e "  ${YELLOW}$index${RESET}) $date ${GRAY}($size)${RESET}"
+    ((index++))
+  done < <(ls -t "$BACKUP_DIR"/config_*.json 2>/dev/null)
+  
+  echo ""
+  echo -en "${BOLD}Chọn backup để khôi phục (1-${#backups[@]}) hoặc 0 để hủy: ${RESET}"
+  read -r choice
+  
+  if [[ "$choice" == "0" ]] || [[ -z "$choice" ]]; then
+    echo -e "${YELLOW}Hủy khôi phục${RESET}"
+    return
+  fi
+  
+  if [[ ! "$choice" =~ ^[0-9]+$ ]] || [[ "$choice" -lt 1 ]] || [[ "$choice" -gt ${#backups[@]} ]]; then
+    echo -e "${RED}Lựa chọn không hợp lệ${RESET}"
+    return
+  fi
+  
+  local selected_backup="${backups[$((choice-1))]}"
+  
+  echo -e "${YELLOW}Đang khôi phục từ: $(basename "$selected_backup")${RESET}"
+  
+  # Backup config hiện tại trước khi khôi phục
+  if [[ -f "$CONFIG_FILE" ]]; then
+    cp "$CONFIG_FILE" "${CONFIG_FILE}.before_restore"
+  fi
+  
+  cp "$selected_backup" "$CONFIG_FILE"
+  chmod 644 "$CONFIG_FILE"
+  
+  echo -e "${GREEN}✓ Khôi phục thành công!${RESET}"
+  echo -e "${GRAY}File cũ đã được lưu tại: ${CONFIG_FILE}.before_restore${RESET}"
+}
+
 # Hàm chính
 main() {
-  # Hiển thị tiêu đề
-  echo -e "${BLUE}==============================================${RESET}"
-  echo -e "${BOLD}${CYAN} Công cụ quản lý cấu hình V2Node${RESET}"
-  echo -e "${GRAY}Tệp cấu hình: $CONFIG_FILE${RESET}"
-  echo -e "${BLUE}==============================================${RESET}"
+  # Kiểm tra quyền root trước
+  check_root
   
+  # Hiển thị tiêu đề
+  clear
+  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+  echo -e "${BOLD}${CYAN}      V2Node Manager Pro v1.0${RESET}"
+  echo -e "${GRAY}      Quản lý V2Node chuyên nghiệp${RESET}"
+  echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+  echo ""
+  
+  # Kiểm tra và cài đặt dependencies
   check_jq
   check_config
+  
+  # Kiểm tra v2node và đề xuất cài đặt nếu chưa có
+  if ! check_v2node; then
+    echo -e "${YELLOW}⚠ V2Node chưa được cài đặt trên hệ thống${RESET}"
+    echo -en "${BOLD}Bạn có muốn cài đặt ngay không? [Y/n]: ${RESET}"
+    read -r install_choice
+    if [[ ! "$install_choice" =~ ^[Nn]$ ]]; then
+      install_v2node
+      echo ""
+      echo -e "${GREEN}Nhấn Enter để tiếp tục...${RESET}"
+      read -r
+    fi
+  fi
+  
   v2node_menu
 }
 
