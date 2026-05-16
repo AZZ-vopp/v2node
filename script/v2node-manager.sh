@@ -190,7 +190,7 @@ update_v2node() {
   echo ""
   
   echo -e "${YELLOW}Đang cập nhật v2node...${RESET}"
-  bash <(curl -Ls https://raw.githubusercontent.com/AZZ-vopp/v2node/master/script/install.sh)
+  bash <(curl -Ls https://raw.githubusercontent.com/wyx2685/v2node/refs/heads/main/script/install.sh)
   
   echo ""
   echo -e "${GREEN}✓ Cập nhật hoàn tất${RESET}"
